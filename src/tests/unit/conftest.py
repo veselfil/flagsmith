@@ -1,10 +1,10 @@
 import pytest
 
+from environments.models import Environment
+from features.models import Feature
 from organisations.models import Organisation
 from projects.models import Project
-from environments.models import Environment
-from segments.models import Segment, SegmentRule, Condition, EQUAL
-from features.models import Feature
+from segments.models import EQUAL, Condition, Segment, SegmentRule
 
 
 @pytest.fixture()
@@ -31,5 +31,5 @@ def feature(project):
 def segment(project):
     segment = Segment.objects.create(name="Test Segment", project=project)
     rule = SegmentRule.objects.create(type=SegmentRule.ALL_RULE, segment=segment)
-    condition = Condition.objects.create(operator=EQUAL, property="foo", value="bar")
+    Condition.objects.create(operator=EQUAL, property="foo", value="bar", rule=rule)
     return segment
