@@ -44,27 +44,6 @@ class SegmentRuleTest(TestCase):
         )
         self.segment = Segment.objects.create(project=self.project, name="test_segment")
 
-    def test_get_segment_returns_parent_segment_for_nested_rule(self):
-        # Given
-        parent_rule = SegmentRule.objects.create(
-            segment=self.segment, type=SegmentRule.ALL_RULE
-        )
-        child_rule = SegmentRule.objects.create(
-            rule=parent_rule, type=SegmentRule.ALL_RULE
-        )
-        grandchild_rule = SegmentRule.objects.create(
-            rule=child_rule, type=SegmentRule.ALL_RULE
-        )
-        Condition.objects.create(
-            operator=PERCENTAGE_SPLIT, value=0.1, rule=grandchild_rule
-        )
-
-        # When
-        segment = grandchild_rule.get_segment()
-
-        # Then
-        assert segment == self.segment
-
 
 @pytest.mark.django_db
 class ConditionTest(TestCase):
@@ -89,13 +68,12 @@ class ConditionTest(TestCase):
         self, mock_get_hashed_percentage_for_object_ids
     ):
         # Given
-        condition = Condition.objects.create(
-            rule=self.rule, operator=PERCENTAGE_SPLIT, value=10
-        )
+        condition = Condition(rule=self.rule, operator=PERCENTAGE_SPLIT, value=10)
         mock_get_hashed_percentage_for_object_ids.return_value = 0.2
+        mock_segment = mock.MagicMock(id=1)
 
         # When
-        res = condition.does_identity_match(self.identity)
+        res = condition.does_identity_match(self.identity, mock_segment)
 
         # Then
         assert not res

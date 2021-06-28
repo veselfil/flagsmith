@@ -7,7 +7,9 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.encoding import python_2_unicode_compatible
 
-from environments.identities.helpers import get_hashed_percentage_for_object_ids
+from environments.identities.helpers import (
+    get_hashed_percentage_for_object_ids,
+)
 from environments.identities.models import Identity
 from environments.identities.traits.models import Trait
 from environments.models import BOOLEAN, FLOAT, INTEGER
@@ -82,7 +84,7 @@ class SegmentRule(models.Model):
         )
 
     def does_identity_match(
-        self, identity: Identity, traits: typing.List[Trait] = None
+        self, identity: Identity, segment: Segment, traits: typing.List[Trait] = None
     ) -> bool:
         matches_conditions = False
         conditions = self.conditions.all()
@@ -91,35 +93,24 @@ class SegmentRule(models.Model):
             matches_conditions = True
         elif self.type == self.ALL_RULE:
             matches_conditions = all(
-                condition.does_identity_match(identity, traits)
+                condition.does_identity_match(identity, segment, traits)
                 for condition in conditions
             )
         elif self.type == self.ANY_RULE:
             matches_conditions = any(
-                condition.does_identity_match(identity, traits)
+                condition.does_identity_match(identity, segment, traits)
                 for condition in conditions
             )
         elif self.type == self.NONE_RULE:
             matches_conditions = not any(
-                condition.does_identity_match(identity, traits)
+                condition.does_identity_match(identity, segment, traits)
                 for condition in conditions
             )
 
         return matches_conditions and all(
-            rule.does_identity_match(identity, traits) for rule in self.rules.all()
+            rule.does_identity_match(identity, segment, traits)
+            for rule in self.rules.all()
         )
-
-    def get_segment(self):
-        """
-        rules can be a child of a parent rule instead of a segment, this method iterates back up the tree to find the
-        segment
-
-        TODO: denormalise the segment information so that we don't have to make multiple queries here in complex cases
-        """
-        rule = self
-        while not rule.segment:
-            rule = rule.rule
-        return rule.segment
 
 
 @python_2_unicode_compatible
@@ -154,10 +145,10 @@ class Condition(models.Model):
         )
 
     def does_identity_match(
-        self, identity: Identity, traits: typing.List[Trait] = None
+        self, identity: Identity, segment: Segment, traits: typing.List[Trait] = None
     ) -> bool:
         if self.operator == PERCENTAGE_SPLIT:
-            return self._check_percentage_split_operator(identity)
+            return self._check_percentage_split_operator(identity, segment)
 
         # we allow passing in traits to handle when they aren't
         # persisted for certain organisations
@@ -174,13 +165,12 @@ class Condition(models.Model):
                 else:
                     return self.check_string_value(trait.string_value)
 
-    def _check_percentage_split_operator(self, identity):
+    def _check_percentage_split_operator(self, identity, segment: Segment):
         try:
             float_value = float(self.value) / 100.0
         except ValueError:
             return False
 
-        segment = self.rule.get_segment()
         return (
             get_hashed_percentage_for_object_ids(object_ids=[segment.id, identity.id])
             <= float_value
