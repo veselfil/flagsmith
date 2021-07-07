@@ -1,7 +1,12 @@
 from collections import namedtuple
 
 import coreapi
+from flag_engine.identities.builders import (
+    build_identity_dict,
+    build_identity_model,
+)
 from rest_framework import status, viewsets
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.schemas import AutoSchema
@@ -53,6 +58,10 @@ class IdentityViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         environment = self.get_environment_from_request()
         serializer.save(environment=environment)
+
+    @action(detail=True, methods=["GET"])
+    def as_json(self, request, *args, **kwargs):
+        return Response(build_identity_dict(self.get_object()))
 
 
 class SDKIdentitiesDeprecated(SDKAPIView):

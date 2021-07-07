@@ -1,9 +1,15 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
+import logging
+
 from django.utils.decorators import method_decorator
 from drf_yasg2 import openapi
 from drf_yasg2.utils import swagger_auto_schema
+from flag_engine.environments.builders import (
+    build_environment_dict,
+    build_environment_model,
+)
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -17,7 +23,6 @@ from permissions.serializers import (
     MyUserObjectPermissionsSerializer,
     PermissionModelSerializer,
 )
-import logging
 
 from .identities.traits.models import Trait
 from .identities.traits.serializers import (
@@ -174,6 +179,10 @@ class EnvironmentViewSet(viewsets.ModelViewSet):
         serializer.is_valid()
 
         return Response(serializer.data)
+
+    @action(detail=True, methods=["GET"])
+    def as_json(self, request, *args, **kwargs):
+        return Response(build_environment_dict(self.get_object()))
 
 
 class WebhookViewSet(
