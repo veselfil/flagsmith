@@ -57,7 +57,7 @@ if settings.WORKFLOWS_LOGIC_INSTALLED:
             ),
             path(
                 "api/v1/environments/<str:environment_api_key>/list-change-requests/",
-                workflow_views.list_change_requests,
+                workflow_views.ListChangeRequestsAPIView.as_view(),
                 name="list-change-requests",
             ),
         ]
