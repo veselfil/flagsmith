@@ -142,6 +142,7 @@ INSTALLED_APPS = [
     "telemetry",
     # for filtering querysets on viewsets
     "django_filters",
+    "flagsmithsite",
 ]
 
 if GOOGLE_ANALYTICS_KEY or INFLUXDB_TOKEN:
